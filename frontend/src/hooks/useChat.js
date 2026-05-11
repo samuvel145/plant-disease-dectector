@@ -21,7 +21,6 @@ export function useChat() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
   const sessionId = useRef(getOrCreateSessionId())
-  const cameraInputRef = useRef(null)
   const galleryInputRef = useRef(null)
   const resultEndRef = useRef(null)
 
@@ -88,12 +87,6 @@ export function useChat() {
     }
   }, [isLoading, startFreshSession])
 
-  const handleCameraInputChange = useCallback((event) => {
-    const file = event.target.files?.[0]
-    if (file) analyseSelectedFile(file, 'camera')
-    event.target.value = ''
-  }, [analyseSelectedFile])
-
   const handleGalleryInputChange = useCallback((event) => {
     const file = event.target.files?.[0]
     if (file) analyseSelectedFile(file, 'photos')
@@ -111,10 +104,6 @@ export function useChat() {
     setIsLoading(false)
   }, [startFreshSession])
 
-  const triggerCamera = useCallback(() => {
-    cameraInputRef.current?.click()
-  }, [])
-
   const triggerGallery = useCallback(() => {
     galleryInputRef.current?.click()
   }, [])
@@ -124,13 +113,11 @@ export function useChat() {
     result,
     isLoading,
     error,
-    cameraInputRef,
     galleryInputRef,
     resultEndRef,
-    handleCameraInputChange,
     handleGalleryInputChange,
+    analyseSelectedFile,
     handleReset,
-    triggerCamera,
     triggerGallery,
   }
 }

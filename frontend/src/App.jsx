@@ -1,33 +1,25 @@
+import { useState } from 'react'
 import ChatWindow from './components/ChatWindow'
+import CameraCapture from './components/CameraCapture'
 import { useChat } from './hooks/useChat'
 
 export default function App() {
+  const [isCameraOpen, setIsCameraOpen] = useState(false)
   const {
     selectedImage,
     result,
     isLoading,
     error,
-    cameraInputRef,
     galleryInputRef,
     resultEndRef,
-    handleCameraInputChange,
     handleGalleryInputChange,
+    analyseSelectedFile,
     handleReset,
-    triggerCamera,
     triggerGallery,
   } = useChat()
 
   return (
     <div className="app-shell">
-      <input
-        ref={cameraInputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        className="hidden-file-input"
-        onChange={handleCameraInputChange}
-        aria-label="Take a plant photo with camera"
-      />
       <input
         ref={galleryInputRef}
         type="file"
@@ -42,9 +34,15 @@ export default function App() {
         result={result}
         isLoading={isLoading}
         resultEndRef={resultEndRef}
-        onCamera={triggerCamera}
+        onCamera={() => setIsCameraOpen(true)}
         onPhotos={triggerGallery}
         onReset={handleReset}
+      />
+
+      <CameraCapture
+        isOpen={isCameraOpen}
+        onClose={() => setIsCameraOpen(false)}
+        onCapture={analyseSelectedFile}
       />
 
       {error && (
