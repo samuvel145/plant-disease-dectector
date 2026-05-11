@@ -2,8 +2,8 @@ import { useEffect, useRef } from 'react'
 import ActionButtons from './ActionButtons'
 
 const COLOUR_MAP = {
-  green: { bar: 'conf-green', badge: 'badge-green' },
-  'light-green': { bar: 'conf-light-green', badge: 'badge-light-green' },
+  green: { bar: 'conf-cool', badge: 'badge-cool' },
+  'light-green': { bar: 'conf-cool-light', badge: 'badge-cool-light' },
   amber: { bar: 'conf-amber', badge: 'badge-amber' },
   orange: { bar: 'conf-orange', badge: 'badge-orange' },
   red: { bar: 'conf-red', badge: 'badge-red' },
@@ -66,7 +66,7 @@ export default function DiagnosisCard({ data, onCamera, onPhotos }) {
 
       <div className="diagnosis-row">
         <span className="diagnosis-label">Disease</span>
-        <span className="diagnosis-value" style={{ color: isHealthy ? '#a8d48e' : '#fffaf0' }}>
+        <span className="diagnosis-value" style={{ color: isHealthy ? '#b7e6ff' : '#fffaf0' }}>
           {data.disease}
         </span>
       </div>
