@@ -1,73 +1,67 @@
-import MessageBubble from './MessageBubble'
+import ActionButtons from './ActionButtons'
+import DiagnosisCard from './DiagnosisCard'
 import TypingIndicator from './TypingIndicator'
 
-/**
- * Starter prompts shown when there are no messages yet.
- */
-const WELCOME_CHIPS = [
-  'What causes powdery mildew?',
-  'How do I treat early blight?',
-  'Is neem oil safe for vegetables?',
-  'How often should I water tomatoes?',
-]
-
-/**
- * ChatWindow — the main scrollable message history area.
- */
 export default function ChatWindow({
-  messages,
+  selectedImage,
+  result,
   isLoading,
-  chatEndRef,
-  onUpload,
-  onAsk,
+  resultEndRef,
+  onCamera,
+  onPhotos,
   onReset,
-  onChipClick,
 }) {
-  const isEmpty = messages.length === 0
-
   return (
-    <main className="chat-window" role="log" aria-live="polite" aria-label="Chat history">
-      {/* Welcome / empty state */}
-      {isEmpty && (
-        <div className="welcome-card">
-          <span className="welcome-icon">🌿</span>
-          <h1 className="welcome-title">PlantMD</h1>
-          <p className="welcome-subtitle">
-            Upload a photo of your plant or leaf and I'll give you an instant
-            AI-powered disease diagnosis with treatment recommendations.
-          </p>
-          <div className="welcome-chips" role="list" aria-label="Suggested questions">
-            {WELCOME_CHIPS.map((chip) => (
-              <button
-                key={chip}
-                className="welcome-chip"
-                role="listitem"
-                onClick={() => onChipClick(chip)}
-                aria-label={`Ask: ${chip}`}
-              >
-                {chip}
-              </button>
-            ))}
-          </div>
-        </div>
+    <main className="scan-screen" aria-live="polite">
+      <section className="scan-hero" aria-label="Plant analyser">
+        <div className="brand-mark">Plant Analyser</div>
+        <h1>Grow smarter. Catch plant problems early.</h1>
+        <p>
+          Take a fresh leaf photo or choose one from your photos to get a quick
+          plant health diagnosis.
+        </p>
+        <ActionButtons onCamera={onCamera} onPhotos={onPhotos} disabled={isLoading} />
+      </section>
+
+      {(selectedImage || isLoading || result) && (
+        <section className="scan-results" aria-label="Analysis result">
+          {selectedImage && (
+            <div className="selected-image-panel">
+              <img src={selectedImage.previewUrl} alt="Selected plant" />
+              <div>
+                <span>{selectedImage.source === 'camera' ? 'Camera photo' : 'Photo selected'}</span>
+                <strong>{selectedImage.file.name}</strong>
+              </div>
+            </div>
+          )}
+
+          {isLoading && (
+            <div className="analysis-loading" role="status">
+              <TypingIndicator />
+              <span>Analysing your plant image...</span>
+            </div>
+          )}
+
+          {result?.type === 'diagnosis' && (
+            <DiagnosisCard data={result.data} onCamera={onCamera} onPhotos={onPhotos} />
+          )}
+
+          {result?.type === 'guardrail' && (
+            <div className="guardrail-card">
+              <p>{result.message}</p>
+              <ActionButtons onCamera={onCamera} onPhotos={onPhotos} />
+            </div>
+          )}
+
+          {result && (
+            <button className="quiet-reset-btn" type="button" onClick={onReset}>
+              Clear result
+            </button>
+          )}
+
+          <div ref={resultEndRef} />
+        </section>
       )}
-
-      {/* Message list */}
-      {messages.map((msg) => (
-        <MessageBubble
-          key={msg.id}
-          msg={msg}
-          onUpload={onUpload}
-          onAsk={onAsk}
-          onReset={onReset}
-        />
-      ))}
-
-      {/* Typing indicator */}
-      {isLoading && <TypingIndicator />}
-
-      {/* Scroll anchor */}
-      <div ref={chatEndRef} />
     </main>
   )
 }

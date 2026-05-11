@@ -1,115 +1,81 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { v4 as uuidv4 } from 'uuid'
-import { analyseImage, sendChat, resetSession } from '../api/agentApi'
+import { analyseImage, resetSession } from '../api/agentApi'
 import { validateImageFile, createImagePreview, revokeImagePreview } from '../utils/imageUtils'
 
 const SESSION_KEY = 'plantmd_session_id'
 
-function getOrCreateSessionId() {
-  let id = sessionStorage.getItem(SESSION_KEY)
-  if (!id) {
-    id = uuidv4()
-    sessionStorage.setItem(SESSION_KEY, id)
-  }
+function createSessionId() {
+  const id = uuidv4()
+  sessionStorage.setItem(SESSION_KEY, id)
   return id
 }
 
+function getOrCreateSessionId() {
+  return sessionStorage.getItem(SESSION_KEY) || createSessionId()
+}
+
 export function useChat() {
-  const [messages, setMessages] = useState([])
+  const [selectedImage, setSelectedImage] = useState(null)
+  const [result, setResult] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
-  const [pendingImage, setPendingImage] = useState(null) // { file, previewUrl }
   const sessionId = useRef(getOrCreateSessionId())
-  const fileInputRef = useRef(null)
-  const textInputRef = useRef(null)
-  const chatEndRef = useRef(null)
+  const cameraInputRef = useRef(null)
+  const galleryInputRef = useRef(null)
+  const resultEndRef = useRef(null)
 
-  // Auto-scroll to latest message
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, isLoading])
+    resultEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+  }, [result, isLoading])
 
-  // Clear error after 4s
   useEffect(() => {
     if (!error) return
-    const t = setTimeout(() => setError(null), 4000)
-    return () => clearTimeout(t)
+    const timeout = setTimeout(() => setError(null), 4500)
+    return () => clearTimeout(timeout)
   }, [error])
 
-  const addMessage = useCallback((msg) => {
-    setMessages((prev) => [...prev, { id: uuidv4(), ...msg }])
+  useEffect(() => {
+    return () => {
+      if (selectedImage?.previewUrl) revokeImagePreview(selectedImage.previewUrl)
+    }
+  }, [selectedImage])
+
+  const startFreshSession = useCallback(async () => {
+    try {
+      await resetSession(sessionId.current)
+    } catch {
+      // A missing server-side session is fine; the next upload creates one.
+    }
+    sessionId.current = createSessionId()
   }, [])
 
-  const clearPendingImage = useCallback(() => {
-    if (pendingImage?.previewUrl) revokeImagePreview(pendingImage.previewUrl)
-    setPendingImage(null)
-  }, [pendingImage])
+  const analyseSelectedFile = useCallback(async (file, source) => {
+    if (!file || isLoading) return
 
-  /** Handle image file selection */
-  const handleImageSelect = useCallback((file) => {
-    const { valid, error: err } = validateImageFile(file)
+    const { valid, error: validationError } = validateImageFile(file)
     if (!valid) {
-      setError(err)
+      setError(validationError)
       return
     }
-    clearPendingImage()
-    setPendingImage({
-      file,
-      previewUrl: createImagePreview(file),
+
+    const previewUrl = createImagePreview(file)
+    setSelectedImage((prev) => {
+      if (prev?.previewUrl) revokeImagePreview(prev.previewUrl)
+      return { file, previewUrl, source }
     })
-  }, [clearPendingImage])
-
-  /** Handle file input change */
-  const handleFileInputChange = useCallback((e) => {
-    const file = e.target.files?.[0]
-    if (file) handleImageSelect(file)
-    // Reset so same file can be re-selected
-    if (fileInputRef.current) fileInputRef.current.value = ''
-  }, [handleImageSelect])
-
-  /** Send message (image or text) */
-  const sendMessage = useCallback(async (text) => {
-    if (!text?.trim() && !pendingImage) return
-    if (isLoading) return
-
-    setIsLoading(true)
+    setResult(null)
     setError(null)
+    setIsLoading(true)
 
     try {
-      if (pendingImage) {
-        // Add user bubble with image + optional text
-        addMessage({
-          role: 'user',
-          type: 'image',
-          imagePreviewUrl: pendingImage.previewUrl,
-          text: text?.trim() || null,
-        })
+      await startFreshSession()
+      const data = await analyseImage(file, sessionId.current, null)
 
-        const data = await analyseImage(
-          pendingImage.file,
-          sessionId.current,
-          text?.trim() || null
-        )
-
-        if (data.type === 'diagnosis') {
-          addMessage({ role: 'ai', type: 'diagnosis', data: data.data })
-        } else if (data.type === 'guardrail') {
-          addMessage({ role: 'ai', type: 'guardrail', text: data.message })
-        }
-
-        // Keep preview URL alive (used in bubble) — don't revoke
-        setPendingImage(null)
-      } else {
-        // Text-only chat
-        addMessage({ role: 'user', type: 'text', text: text.trim() })
-
-        const data = await sendChat(sessionId.current, text.trim())
-
-        if (data.type === 'chat') {
-          addMessage({ role: 'ai', type: 'text', text: data.message })
-        } else if (data.type === 'guardrail') {
-          addMessage({ role: 'ai', type: 'guardrail', text: data.message })
-        }
+      if (data.type === 'diagnosis') {
+        setResult({ type: 'diagnosis', data: data.data })
+      } else if (data.type === 'guardrail') {
+        setResult({ type: 'guardrail', message: data.message })
       }
     } catch (err) {
       const detail =
@@ -120,48 +86,51 @@ export function useChat() {
     } finally {
       setIsLoading(false)
     }
-  }, [pendingImage, isLoading, addMessage])
+  }, [isLoading, startFreshSession])
 
-  /** Reset session */
+  const handleCameraInputChange = useCallback((event) => {
+    const file = event.target.files?.[0]
+    if (file) analyseSelectedFile(file, 'camera')
+    event.target.value = ''
+  }, [analyseSelectedFile])
+
+  const handleGalleryInputChange = useCallback((event) => {
+    const file = event.target.files?.[0]
+    if (file) analyseSelectedFile(file, 'photos')
+    event.target.value = ''
+  }, [analyseSelectedFile])
+
   const handleReset = useCallback(async () => {
-    try {
-      await resetSession(sessionId.current)
-    } catch (_) { /* silent */ }
-
-    // Generate new session ID
-    const newId = uuidv4()
-    sessionStorage.setItem(SESSION_KEY, newId)
-    sessionId.current = newId
-
-    setMessages([])
-    clearPendingImage()
+    await startFreshSession()
+    setSelectedImage((prev) => {
+      if (prev?.previewUrl) revokeImagePreview(prev.previewUrl)
+      return null
+    })
+    setResult(null)
     setError(null)
     setIsLoading(false)
-  }, [clearPendingImage])
+  }, [startFreshSession])
 
-  /** Trigger file picker */
-  const triggerFilePicker = useCallback(() => {
-    fileInputRef.current?.click()
+  const triggerCamera = useCallback(() => {
+    cameraInputRef.current?.click()
   }, [])
 
-  /** Focus text input */
-  const focusTextInput = useCallback(() => {
-    textInputRef.current?.focus()
+  const triggerGallery = useCallback(() => {
+    galleryInputRef.current?.click()
   }, [])
 
   return {
-    messages,
+    selectedImage,
+    result,
     isLoading,
     error,
-    pendingImage,
-    fileInputRef,
-    textInputRef,
-    chatEndRef,
-    sendMessage,
+    cameraInputRef,
+    galleryInputRef,
+    resultEndRef,
+    handleCameraInputChange,
+    handleGalleryInputChange,
     handleReset,
-    handleFileInputChange,
-    clearPendingImage,
-    triggerFilePicker,
-    focusTextInput,
+    triggerCamera,
+    triggerGallery,
   }
 }

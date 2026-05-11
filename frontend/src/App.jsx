@@ -1,94 +1,55 @@
-import { useCallback, useState } from 'react'
 import ChatWindow from './components/ChatWindow'
-import InputBar from './components/InputBar'
 import { useChat } from './hooks/useChat'
 
 export default function App() {
   const {
-    messages,
+    selectedImage,
+    result,
     isLoading,
     error,
-    pendingImage,
-    fileInputRef,
-    textInputRef,
-    chatEndRef,
-    sendMessage,
+    cameraInputRef,
+    galleryInputRef,
+    resultEndRef,
+    handleCameraInputChange,
+    handleGalleryInputChange,
     handleReset,
-    handleFileInputChange,
-    clearPendingImage,
-    triggerFilePicker,
-    focusTextInput,
+    triggerCamera,
+    triggerGallery,
   } = useChat()
-
-  const [resetConfirm, setResetConfirm] = useState(false)
-
-  const handleResetClick = useCallback(() => {
-    if (messages.length === 0) return
-    if (resetConfirm) {
-      handleReset()
-      setResetConfirm(false)
-    } else {
-      setResetConfirm(true)
-      setTimeout(() => setResetConfirm(false), 3000)
-    }
-  }, [resetConfirm, handleReset, messages.length])
-
-  const handleChipClick = useCallback(
-    (chip) => {
-      sendMessage(chip)
-    },
-    [sendMessage]
-  )
 
   return (
     <div className="app-shell">
-      {/* ── Header ─────────────────────────── */}
-      <header className="header" role="banner">
-        <div className="header-brand">
-          <span className="header-logo">🌿</span>
-          <div>
-            <div className="header-title">PlantMD</div>
-            <div className="header-tagline">AI Plant Disease Diagnostics</div>
-          </div>
-        </div>
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden-file-input"
+        onChange={handleCameraInputChange}
+        aria-label="Take a plant photo with camera"
+      />
+      <input
+        ref={galleryInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/*"
+        className="hidden-file-input"
+        onChange={handleGalleryInputChange}
+        aria-label="Choose plant photo from photos"
+      />
 
-        <button
-          className="header-reset-btn"
-          onClick={handleResetClick}
-          aria-label="Start a new session"
-          title={resetConfirm ? 'Click again to confirm' : 'Start over'}
-          style={resetConfirm ? { borderColor: 'rgba(239,68,68,0.6)', color: '#f87171' } : {}}
-        >
-          🔄 {resetConfirm ? 'Confirm?' : 'Start Over'}
-        </button>
-      </header>
-
-      {/* ── Chat area ──────────────────────── */}
       <ChatWindow
-        messages={messages}
+        selectedImage={selectedImage}
+        result={result}
         isLoading={isLoading}
-        chatEndRef={chatEndRef}
-        onUpload={triggerFilePicker}
-        onAsk={focusTextInput}
-        onReset={handleResetClick}
-        onChipClick={handleChipClick}
+        resultEndRef={resultEndRef}
+        onCamera={triggerCamera}
+        onPhotos={triggerGallery}
+        onReset={handleReset}
       />
 
-      {/* ── Input bar ──────────────────────── */}
-      <InputBar
-        onSend={sendMessage}
-        onFileChange={handleFileInputChange}
-        pendingImage={pendingImage}
-        onClearImage={clearPendingImage}
-        fileInputRef={fileInputRef}
-        textInputRef={textInputRef}
-        isLoading={isLoading}
-      />
-
-      {/* ── Error toast ────────────────────── */}
       {error && (
         <div className="error-toast" role="alert" aria-live="assertive">
-          ⚠️ {error}
+          {error}
         </div>
       )}
     </div>

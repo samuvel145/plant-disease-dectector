@@ -1,29 +1,23 @@
-/**
- * ActionButtons — CTA buttons shown after every AI diagnosis response.
- */
-export default function ActionButtons({ onUpload, onAsk, onReset }) {
+export default function ActionButtons({ onCamera, onPhotos, disabled = false }) {
   return (
-    <div className="action-buttons">
+    <div className="action-buttons" aria-label="Choose image source">
       <button
-        className="action-btn action-btn--upload"
-        onClick={onUpload}
-        aria-label="Upload another plant image"
+        className="action-btn action-btn--camera"
+        type="button"
+        onClick={onCamera}
+        disabled={disabled}
       >
-        📸 Upload another image
+        <span className="action-icon">CAM</span>
+        Camera
       </button>
       <button
-        className="action-btn action-btn--chat"
-        onClick={onAsk}
-        aria-label="Ask a follow-up question"
+        className="action-btn action-btn--photos"
+        type="button"
+        onClick={onPhotos}
+        disabled={disabled}
       >
-        💬 Ask a question
-      </button>
-      <button
-        className="action-btn action-btn--reset"
-        onClick={onReset}
-        aria-label="Start a new session"
-      >
-        🔄 Start over
+        <span className="action-icon">IMG</span>
+        Photos
       </button>
     </div>
   )
