@@ -3,13 +3,17 @@ Application configuration loaded from environment variables.
 Uses pydantic-settings for type-safe config management.
 """
 
-from pydantic_settings import BaseSettings
+from pathlib import Path
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import List
+
+BASE_DIR = Path(__file__).resolve().parent
 
 
 class Settings(BaseSettings):
     # Gemini API
-    GEMINI_API_KEY: str = "your_gemini_api_key_here"
+    GEMINI_API_KEY: str
     GEMINI_API_KEY_FALLBACK: str | None = None
 
     # Session Configuration
@@ -37,9 +41,10 @@ class Settings(BaseSettings):
     def max_image_size_bytes(self) -> int:
         return self.MAX_IMAGE_SIZE_MB * 1024 * 1024
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
+    model_config = SettingsConfigDict(
+        env_file=(BASE_DIR / ".env", ".env"),
+        env_file_encoding="utf-8",
+    )
 
 
 settings = Settings()
