@@ -86,14 +86,3 @@ python -m uvicorn main:app --host 127.0.0.1 --port 8000
 
 ---
 
-### 🌐 Deployment (Vercel)
-
-This repository is pre-configured with a highly stable `vercel.json` file. Vercel naturally excels at running "both at the same time" natively:
-- It pushes the compiled React Frontend to its global Edge CDN for lightning-fast speeds.
-- It deploys the FastAPI Backend as AWS Serverless Functions mapped to the `/api` route.
-
-**To deploy:**
-1. Import your GitHub repository to [Vercel](https://vercel.com/).
-2. Vercel will auto-detect the configuration.
-3. **Important:** Go to your Vercel Project Settings > Environment Variables, and securely add your `GEMINI_API_KEY` and `GEMINI_API_KEY_FALLBACK`.
-4. Hit **Deploy**!
