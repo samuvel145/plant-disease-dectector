@@ -9,6 +9,33 @@ const COLOUR_MAP = {
   red: { bar: 'conf-red', badge: 'badge-red' },
 }
 
+const SHOP_HOME_URL = 'https://khetishop.com/'
+
+function getRelatedProducts(data, isHealthy) {
+  const text = `${data?.plant || ''} ${data?.disease || ''}`.toLowerCase()
+
+  const products = []
+  if (isHealthy) {
+    products.push('Plant growth promoter')
+    products.push('Organic fertilizer')
+  } else {
+    if (text.includes('fung') || text.includes('mildew') || text.includes('blight')) {
+      products.push('Fungicide')
+    }
+    if (text.includes('bacteria') || text.includes('spot')) {
+      products.push('Bactericide')
+    }
+    if (text.includes('virus') || text.includes('mosaic') || text.includes('curl')) {
+      products.push('Insecticide for vector control')
+    }
+    products.push('Neem oil')
+    products.push('Sprayer pump')
+  }
+
+  const uniqueProducts = [...new Set(products)].slice(0, 3)
+  return uniqueProducts.map((label) => ({ label, url: SHOP_HOME_URL }))
+}
+
 function parseConfidenceInt(str) {
   const match = str?.match(/\d+/)
   return match ? Math.min(100, parseInt(match[0], 10)) : 0
@@ -50,6 +77,7 @@ export default function DiagnosisCard({ data, onCamera, onPhotos }) {
   const isHealthy =
     diseaseText.toLowerCase().includes('none detected') ||
     diseaseText.toLowerCase().includes('healthy')
+  const relatedProducts = getRelatedProducts(data, isHealthy)
 
   return (
     <div className="diagnosis-card" role="region" aria-label="Diagnosis result">
@@ -111,6 +139,25 @@ export default function DiagnosisCard({ data, onCamera, onPhotos }) {
               <li key={index}>{step}</li>
             ))}
           </ol>
+        </>
+      )}
+
+      {relatedProducts.length > 0 && (
+        <>
+          <p className="diagnosis-section-title">Related Products</p>
+          <div className="related-products-list">
+            {relatedProducts.map((item) => (
+              <a
+                key={item.label}
+                className="related-product-link"
+                href={item.url}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Buy {item.label} on KhetiShop
+              </a>
+            ))}
+          </div>
         </>
       )}
 
